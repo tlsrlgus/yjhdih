@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR 코드 해독기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #4a90e2;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #357ab7;
+        }
+        #instructions {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 15px;
+        }
+        #resultContainer {
+            display: none;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        #result {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border: 1px solid #b0d4ff;
+            border-radius: 4px;
+            color: #333333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="cameraContainer">
+        <h1>QR 코드 해독기</h1>
+        <video id="video" autoplay></video>
+        <p id="instructions">QR 코드를 카메라 중앙에 맞추세요.</p>
+        <button onclick="startCamera()">카메라 시작</button>
+    </div>
+
+    <div class="container" id="resultContainer">
+        <h1>QR 코드 결과</h1>
+        <p id="result">결과가 여기에 표시됩니다.</p>
+    </div>
+
+    <script>
+        let videoStream;
+        let detector;
+
+        async function startCamera() {
+            const video = document.getElementById('video');
+            const cameraContainer = document.getElementById('cameraContainer');
+            const resultContainer = document.getElementById('resultContainer');
+
+            if (!('BarcodeDetector' in window)) {
+                alert('이 브라우저는 BarcodeDetector API를 지원하지 않습니다.');
+                return;
+            }
+
+            try {
+                detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                video.srcObject = videoStream;
+
+                cameraContainer.style.display = 'block';
+                resultContainer.style.display = 'none';
+
+                scanQRCode();
+            } catch (err) {
+                console.error('카메라 접근 실패:', err);
+                alert('카메라를 사용할 수 없습니다. 권한을 확인하세요.');
+            }
+        }
+
+        async function scanQRCode() {
+            const video = document.getElementById('video');
+            const cameraContainer = document.getElementById('cameraContainer');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultElement = document.getElementById('result');
+
+            if (!detector) {
+                console.error('BarcodeDetector가 초기화되지 않았습니다.');
+                return;
+            }
+
+            const scan = async () => {
+                try {
+                    const barcodes = await detector.detect(video);
+
+                    if (barcodes.length > 0) {
+                        const encrypted = barcodes[0].rawValue;
+                        console.log('QR 코드 감지:', encrypted);
+
+                        const decodedResult = decodeHexToBase64AndOriginal(encrypted);
+                        resultElement.textContent = decodedResult;
+
+                        cameraContainer.style.display = 'none';
+                        resultContainer.style.display = 'block';
+
+                        stopCamera();
+                        return;
+                    }
+                } catch (err) {
+                    console.error('QR 코드 스캔 중 오류:', err);
+                }
+
+                requestAnimationFrame(scan);
+            };
+
+            scan();
+        }
+
+        function decodeHexToBase64AndOriginal(hexString) {
+            try {
+                // Step 1: Convert HEX to raw bytes
+                let rawBytes = '';
+                for (let i = 0; i < hexString.length; i += 2) {
+                    const byte = parseInt(hexString.substr(i, 2), 16);
+                    if (isNaN(byte)) {
+                        throw new Error('Invalid HEX character detected at position ' + i);
+                    }
+                    rawBytes += String.fromCharCode(byte);
+                }
+
+                // Step 2: Encode raw bytes to Base64
+                const base64String = btoa(rawBytes);
+
+                // Step 3: Decode Base64 to original string
+                const originalString = decodeURIComponent(escape(atob(base64String)));
+
+                return originalString;
+            } catch (e) {
+                console.error('복호화 실패:', e);
+                return '복호화 실패: 데이터가 올바르지 않습니다.';
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach((track) => track.stop());
+                videoStream = null;
+            }
+        }
+
+        window.addEventListener('beforeunload', stopCamera);
+    </script>
+</body>
+</html>
