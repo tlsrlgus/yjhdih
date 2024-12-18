@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전자 외출증 발급</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555555;
+        }
+        input, select, textarea, button {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #357ab7;
+        }
+        #result {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border: 1px solid #b0d4ff;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333333;
+        }
+        #qrCode {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>외출증</h1>
+        <form id="leaveForm">
+            <label for="studentId">학번:</label>
+            <input type="text" id="studentId" name="studentId" required>
+
+            <label for="studentName">이름:</label>
+            <input type="text" id="studentName" name="studentName" required>
+
+            <label for="type">외출/조퇴:</label>
+            <select id="type" name="type" required>
+                <option value="">선택하세요</option>
+                <option value="외출">외출</option>
+                <option value="조퇴">조퇴</option>
+            </select>
+
+            <label for="startTime">외출/조퇴 시작시간:</label>
+            <input type="time" id="startTime" name="startTime" required>
+
+            <label for="endTime">끝시간 (조퇴 제외):</label>
+            <input type="time" id="endTime" name="endTime">
+
+            <label for="reason">사유:</label>
+            <textarea id="reason" name="reason" required></textarea>
+
+            <label for="teacherName">담임선생님 성함:</label>
+            <input type="text" id="teacherName" name="teacherName" required>
+
+            <button type="button" onclick="generateLeaveString()">생성</button>
+        </form>
+
+        <h2>생성된 암호화 문자열</h2>
+        <p id="result"></p>
+
+        <canvas id="qrCode"></canvas>
+    </div>
+    <script>
+        function utf8ToBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function base64ToHex(base64) {
+            return Array.from(atob(base64)).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+        }
+
+        function generateLeaveString() {
+            const studentId = document.getElementById('studentId').value;
+            const studentName = document.getElementById('studentName').value;
+            const type = document.getElementById('type').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const reason = document.getElementById('reason').value;
+            const teacherName = document.getElementById('teacherName').value;
+
+            if (!studentId || !studentName || !type || !startTime || !reason || !teacherName) {
+                alert('모든 필수 항목을 입력해주세요.');
+                return;
+            }
+
+            let resultString = `학번: ${studentId}\n` +
+                               `이름: ${studentName}\n` +
+                               `유형: ${type}\n` +
+                               `시작시간: ${startTime}\n`;
+
+            if (type === '외출' && endTime) {
+                resultString += `끝시간: ${endTime}\n`;
+            }
+
+            resultString += `사유: ${reason}\n` +
+                            `담임선생님 성함: ${teacherName}`;
+
+            // 1단계: Base64로 변환
+            const base64 = utf8ToBase64(resultString);
+
+            // 2단계: Hex로 변환
+            const hex = base64ToHex(base64);
+
+            document.getElementById('result').textContent = hex;
+
+            // QR 코드 생성
+            const qr = new QRious({
+                element: document.getElementById('qrCode'),
+                value: hex,
+                size: 200
+            });
+        }
+    </script>
+</body>
+</html>
