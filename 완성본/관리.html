@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외출증 요청 관리</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th,
+        td {
+            border: 1px solid #cccccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.approve {
+            background-color: #28a745;
+            color: #fff;
+        }
+        button.reject {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>외출증 요청 관리</h1>
+        <button onclick="clearLocalStorage()">로컬 스토리지 초기화</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>학생 이름</th>
+                    <th>학번</th>
+                    <th>유형</th>
+                    <th>시간</th>
+                    <th>사유</th>
+                    <th>상태</th>
+                    <th>승인</th>
+                    <th>거절</th>
+                </tr>
+            </thead>
+            <tbody id="requestTable">
+                <!-- 요청 데이터가 여기에 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        const LOCAL_STORAGE_KEY = "leaveRequests";
+
+        // 페이지 로드 시 데이터 로드
+        loadRequests();
+
+        // 요청 데이터 불러오기
+        function loadRequests() {
+            const requests = getRequestsFromLocalStorage();
+            populateTable(requests);
+        }
+
+        // 테이블에 데이터 추가
+        function populateTable(requests) {
+            const table = document.getElementById("requestTable");
+            table.innerHTML = "";
+            requests.forEach((req) => {
+                const row = table.insertRow();
+                row.insertCell().textContent = req.id;
+                row.insertCell().textContent = req.studentName;
+                row.insertCell().textContent = req.studentId;
+                row.insertCell().textContent = req.type;
+                row.insertCell().textContent = `${req.startTime} ~ ${req.endTime}`;
+                row.insertCell().textContent = req.reason;
+                row.insertCell().textContent = req.approved === 0 ? "대기" : req.approved === 1 ? "승인됨" : "거절됨";
+
+                const approveButton = document.createElement("button");
+                approveButton.className = `approve ${req.approved !== 0 ? "disabled" : ""}`;
+                approveButton.textContent = "승인";
+                approveButton.onclick = () => updateStatus(req.id, 1);
+                approveButton.disabled = req.approved !== 0;
+                row.insertCell().appendChild(approveButton);
+
+                const rejectButton = document.createElement("button");
+                rejectButton.className = `reject ${req.approved !== 0 ? "disabled" : ""}`;
+                rejectButton.textContent = "거절";
+                rejectButton.onclick = () => updateStatus(req.id, 2);
+                rejectButton.disabled = req.approved !== 0;
+                row.insertCell().appendChild(rejectButton);
+            });
+        }
+
+        // 상태 업데이트
+        function updateStatus(id, status) {
+            const requests = getRequestsFromLocalStorage();
+            const requestIndex = requests.findIndex(req => req.id === id);
+
+            if (requestIndex > -1) {
+                requests[requestIndex].approved = status;
+                saveRequestsToLocalStorage(requests);
+                loadRequests(); // 테이블 새로고침
+            } else {
+                console.error("Request not found with ID:", id);
+                alert("해당 요청을 찾을 수 없습니다.");
+            }
+        }
+
+        // 로컬 스토리지 초기화 (모든 데이터 삭제)
+        function clearLocalStorage() {
+            if (!confirm("정말로 로컬 스토리지를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+                return;
+            }
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            loadRequests(); // 테이블 새로고침 (데이터 삭제 후 빈 테이블 표시)
+            console.log("로컬 스토리지가 성공적으로 초기화되었습니다.");
+        }
+
+        // 로컬 스토리지에서 요청 목록을 가져오는 함수
+        function getRequestsFromLocalStorage() {
+            const storedRequests = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return storedRequests ? JSON.parse(storedRequests) : [];
+        }
+
+        // 로컬 스토리지에 요청 목록을 저장하는 함수
+        function saveRequestsToLocalStorage(requests) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(requests));
+        }
+    </script>
+</body>
+
+</html>

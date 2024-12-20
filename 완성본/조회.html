@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>승인된 외출증 조회</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555555;
+        }
+        input, button {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #357ab7;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #cccccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>승인된 외출증 조회</h1>
+        <form id="searchForm">
+            <label for="studentId">학번:</label>
+            <input type="text" id="studentId" required>
+
+            <label for="studentName">학생 이름:</label>
+            <input type="text" id="studentName" required>
+
+            <button type="button" onclick="searchApprovedRequests()">조회</button>
+        </form>
+
+        <h2>조회 결과</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>학생 이름</th>
+                    <th>학번</th>
+                    <th>유형</th>
+                    <th>시작시간</th>
+                    <th>끝시간</th>
+                    <th>사유</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody id="resultTableBody">
+                <!-- 조회 결과가 여기에 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        const LOCAL_STORAGE_KEY = "leaveRequests";
+
+        function searchApprovedRequests() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+
+            if (!studentId || !studentName) {
+                alert('학번과 학생 이름을 입력해주세요.');
+                return;
+            }
+
+            // 로컬 스토리지에서 요청 목록을 가져옴
+            const requests = getRequestsFromLocalStorage();
+
+            // 필터링: 승인(approved === 1)되고, 학번과 이름이 일치하며, 사용되지 않은(used === undefined or false) 요청
+            const approvedRequests = requests.filter(req => 
+                req.approved === 1 && req.studentId === studentId && req.studentName === studentName && !req.used
+            );
+
+            // 조회된 요청 상태를 '사용됨(used = true)'으로 변경하고 로컬 스토리지에 저장
+            if (approvedRequests.length > 0) {
+              markRequestsAsUsed(approvedRequests);
+            }
+
+            // 테이블에 결과 표시
+            populateResultTable(approvedRequests);
+        }
+
+        function markRequestsAsUsed(requests) {
+          const allRequests = getRequestsFromLocalStorage();
+
+          requests.forEach(usedReq => {
+            const index = allRequests.findIndex(req => req.id === usedReq.id);
+            if (index > -1) {
+              allRequests[index].used = true;
+            }
+          });
+
+          saveRequestsToLocalStorage(allRequests);
+        }
+
+        function populateResultTable(requests) {
+            const tableBody = document.getElementById("resultTableBody");
+            tableBody.innerHTML = "";
+
+            requests.forEach(request => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${request.id}</td>
+                    <td>${request.studentName}</td>
+                    <td>${request.studentId}</td>
+                    <td>${request.type}</td>
+                    <td>${request.startTime}</td>
+                    <td>${request.endTime}</td>
+                    <td>${request.reason}</td>
+                    <td>${request.used ? '사용됨' : '승인됨'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 로컬 스토리지에서 요청 목록을 가져오는 함수
+        function getRequestsFromLocalStorage() {
+            const storedRequests = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return storedRequests ? JSON.parse(storedRequests) : [];
+        }
+
+        // 로컬 스토리지에 요청 목록을 저장하는 함수
+        function saveRequestsToLocalStorage(requests) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(requests));
+        }
+    </script>
+</body>
+</html>

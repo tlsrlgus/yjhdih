@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외출증 발급 요청</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555555;
+        }
+        input, select, textarea, button {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #357ab7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>외출증 발급 요청</h1>
+        <form id="leaveForm">
+            <label for="studentName">학생 이름:</label>
+            <input type="text" id="studentName" name="studentName" required>
+
+            <label for="studentId">학번:</label>
+            <input type="text" id="studentId" name="studentId" required>
+
+            <label for="type">외출/조퇴:</label>
+            <select id="type" name="type" required>
+                <option value="">선택하세요</option>
+                <option value="외출">외출</option>
+                <option value="조퇴">조퇴</option>
+            </select>
+
+            <label for="startTime">외출/조퇴 시작시간:</label>
+            <input type="time" id="startTime" name="startTime" required>
+
+            <label for="endTime">끝시간 (조퇴 제외):</label>
+            <input type="time" id="endTime" name="endTime">
+
+            <label for="reason">사유:</label>
+            <textarea id="reason" name="reason" required></textarea>
+
+            <button type="button" onclick="submitLeaveRequest()">요청 제출</button>
+        </form>
+    </div>
+    <script>
+        const LOCAL_STORAGE_KEY = "leaveRequests";
+
+        // 요청 데이터 제출
+        function submitLeaveRequest() {
+            const studentName = document.getElementById('studentName').value;
+            const studentId = document.getElementById('studentId').value;
+            const type = document.getElementById('type').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value || "없음";
+            const reason = document.getElementById('reason').value;
+
+            if (!studentName || !studentId || !type || !startTime || !reason) {
+                alert('모든 필수 항목을 입력해주세요.');
+                return;
+            }
+
+            const requestDetails = {
+                studentName,
+                studentId,
+                type,
+                startTime,
+                endTime,
+                reason,
+                approved: 0 // 기본값: 승인 대기
+            };
+
+            // 로컬 스토리지에서 기존 요청 목록을 가져옴
+            let requests = getRequestsFromLocalStorage();
+
+            // 새 요청을 목록에 추가 (ID 생성 로직 추가)
+            requestDetails.id = Date.now(); // 간단하게 타임스탬프를 ID로 사용
+            requests.push(requestDetails);
+
+            // 요청 목록을 로컬 스토리지에 저장
+            saveRequestsToLocalStorage(requests);
+
+            alert("요청이 성공적으로 제출되었습니다.");
+            document.getElementById("leaveForm").reset(); // 폼 초기화
+        }
+
+        // 로컬 스토리지에서 요청 목록을 가져오는 함수
+        function getRequestsFromLocalStorage() {
+            const storedRequests = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return storedRequests ? JSON.parse(storedRequests) : [];
+        }
+
+        // 로컬 스토리지에 요청 목록을 저장하는 함수
+        function saveRequestsToLocalStorage(requests) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(requests));
+        }
+    </script>
+</body>
+</html>
