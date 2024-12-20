@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>승인된 외출증 조회</title>
+    <style>
+        /* ... 스타일은 이전과 동일 ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>승인된 외출증 조회</h1>
+        <form id="searchForm">
+            <label for="studentId">학번:</label>
+            <input type="text" id="studentId" required>
+
+            <label for="studentName">학생 이름:</label>
+            <input type="text" id="studentName" required>
+
+            <button type="button" onclick="searchApprovedRequests()">조회</button>
+        </form>
+
+        <h2>조회 결과</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>학생 이름</th>
+                    <th>학번</th>
+                    <th>유형</th>
+                    <th>시작시간</th>
+                    <th>끝시간</th>
+                    <th>사유</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody id="resultTableBody">
+                <!-- 조회 결과가 여기에 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        const LOCAL_STORAGE_KEY = "leaveRequests";
+
+        function searchApprovedRequests() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+
+            if (!studentId || !studentName) {
+                alert('학번과 학생 이름을 입력해주세요.');
+                return;
+            }
+
+            let requests = getRequestsFromLocalStorage();
+            const approvedRequests = requests.filter(req => 
+                req.approved === 1 && req.studentId === studentId && req.studentName === studentName && !req.used
+            );
+
+            populateResultTable(approvedRequests);
+
+            // 조회된 요청들에 대해 used = true로 설정
+            requests.forEach(req => {
+                if (approvedRequests.some(approvedReq => approvedReq.id === req.id)) {
+                    req.used = true;
+                }
+            });
+
+            saveRequestsToLocalStorage(requests);
+        }
+
+        function populateResultTable(requests) {
+            const tableBody = document.getElementById("resultTableBody");
+            tableBody.innerHTML = "";
+
+            requests.forEach(request => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${request.id}</td>
+                    <td>${request.studentName}</td>
+                    <td>${request.studentId}</td>
+                    <td>${request.type}</td>
+                    <td>${request.startTime}</td>
+                    <td>${request.endTime}</td>
+                    <td>${request.reason}</td>
+                    <td>승인됨</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function getRequestsFromLocalStorage() {
+            const storedRequests = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return storedRequests ? JSON.parse(storedRequests) : [];
+        }
+
+        function saveRequestsToLocalStorage(requests) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(requests));
+        }
+    </script>
+</body>
+</html>
